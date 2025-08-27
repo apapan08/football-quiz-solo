@@ -792,7 +792,7 @@ function HowToModal({ onClose, initialLang = "en", totalQuestions = 9 }) {
         <div className="relative w-full max-w-[680px] font-ui rounded-2xl shadow-xl ring-1 ring-white/10 bg-[var(--howto-bg)] text-slate-100 flex flex-col overflow-hidden max-h-[clamp(420px,85dvh,760px)]">
           <div className="sticky top-0 z-10 px-6 py-4 bg-[var(--howto-bg)] backdrop-blur-sm rounded-t-2xl flex items-center justify-between border-b border-white/10">
             <h2 className="font-display text-2xl font-extrabold">
-              {lang === "en" ? "How to Play (Solo)" : "Πώς παίζεται (Solo)"}
+              {lang === "en" ? "How to Play" : "Πώς παίζεται"}
             </h2>
             <div className="flex items-center gap-2">
               <button
