@@ -3,12 +3,15 @@ import { questions as DATA_QUESTIONS } from "./data/questions";
 
 /**
  * Football Quiz — SOLO MODE (single player)
- * - Removes Player 2 UI and logic in the UI
- * - Keeps Category → Question → Answer flow
- * - Keeps X2 (once per game), streak bonus (+1 from 3rd), and Final wager
+ * - One-button X2 flow
+ * - Classic Previous/Next buttons; Next disabled on Answer until marked
+ * - Correct=green gradient, Wrong=red gradient
+ * - Centered wager UI on final
+ * - Scoring box bigger, no manual +/- adjusters
+ * - Hide X2 box on Final question
  */
 
-const SOLO = true; // this build is single-player
+const SOLO = true;
 
 // ——— Brand font wiring ———
 const FONT_LINK_HREF =
@@ -28,6 +31,9 @@ const THEME = {
   accent: "#F11467",
   card: "rgba(17, 24, 39, 0.55)",
   border: "rgba(255,255,255,0.08)",
+  badgeGradient: "linear-gradient(90deg,#BA1ED3,#F11467)", // pink/purple pill
+  positiveGrad: "linear-gradient(90deg,#22C55E,#10B981)", // green
+  negativeGrad: "linear-gradient(90deg,#F43F5E,#EF4444)", // red
 };
 
 // ——— Game constants ———
@@ -127,7 +133,7 @@ export default function QuizPrototype() {
     if (index > lastIndex) setIndex(lastIndex < 0 ? 0 : lastIndex);
   }, [index, lastIndex, setIndex]);
 
-  // ——— X2 help (only Player) ———
+  // ——— X2 help (single player) ———
   const [x2, setX2] = usePersistentState(`${STORAGE_KEY}:x2`, {
     p1: { available: true, armedIndex: null },
   });
@@ -143,6 +149,12 @@ export default function QuizPrototype() {
   const [lastCorrect, setLastCorrect] = usePersistentState(
     `${STORAGE_KEY}:lastCorrect`,
     null
+  );
+
+  // Track if this question has been marked on the Answer stage
+  const [answered, setAnswered] = usePersistentState(
+    `${STORAGE_KEY}:answered`,
+    {} // { [index]: 'correct' | 'wrong' | 'final-correct' | 'final-wrong' }
   );
 
   // Finale wager (only Player)
@@ -200,20 +212,20 @@ export default function QuizPrototype() {
   }
 
   function noAnswer() {
-    // Break any ongoing streaks and clear last winner
     setLastCorrect(null);
     setP1((s) => ({ ...s, streak: 0 }));
   }
 
   function finalizeOutcomeP1(outcome) {
     const bet = wager.p1;
-    if (finalResolved.p1 || bet <= 0) return;
+    if (finalResolved.p1 /* || bet <= 0 */) return; // allow 0 wager to proceed
     if (outcome === "correct") {
       setP1((s) => ({ ...s, score: s.score + bet }));
     } else {
       setP1((s) => ({ ...s, score: s.score - bet }));
     }
     setFinalResolved({ p1: true });
+    setAnswered((a) => ({ ...a, [index]: outcome === "correct" ? "final-correct" : "final-wrong" }));
   }
 
   function next() {
@@ -246,6 +258,7 @@ export default function QuizPrototype() {
     setFinalResolved({ p1: false });
     setLastCorrect(null);
     setX2({ p1: { available: true, armedIndex: null } });
+    setAnswered({});
   }
 
   async function exportShareCard() {
@@ -326,46 +339,41 @@ export default function QuizPrototype() {
           x{q.points || 1} Points
         </p>
 
-        {/* X2 (Category only). Disabled on Final */}
-        <div className="mt-5 rounded-2xl bg-slate-900/50 p-4">
-          <div className="mb-2 text-center text-sm text-slate-300 font-ui">
-            Βοήθεια Χ2
-          </div>
-          <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto place-items-center">
-            <X2Control
-              label={p1.name}
-              side="p1"
-              armed={isX2ActiveFor("p1")}
-              available={x2.p1.available}
-              disabled={!canArmX2("p1")}
-              grad="linear-gradient(90deg,#BA1ED3,#F11467)"
-              onArm={() => armX2("p1")}
-              isFinal={isFinalIndex}
-            />
-          </div>
-          {isFinalIndex && (
-            <div className="mt-2 text-center text-xs text-slate-400">
-              Η Χ2 βοήθεια δεν επιτρέπεται στον Τελικό.
+        {/* X2 (single button) — HIDDEN on Final */}
+        {!isFinalIndex && (
+          <div className="mt-5 rounded-2xl bg-slate-900/50 p-4">
+            <div className="mb-2 text-center text-sm text-slate-300 font-ui">
+              Βοήθεια Χ2
             </div>
-          )}
-        </div>
+            <div className="max-w-2xl mx-auto flex justify-center">
+              <X2Control
+                label={p1.name}
+                side="p1"
+                armed={isX2ActiveFor("p1")}
+                available={x2.p1.available}
+                onArm={() => armX2("p1")}
+                isFinal={isFinalIndex}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Final betting UI on last question */}
         {isFinalIndex && (
           <div className="mt-5 rounded-2xl bg-slate-900/50 p-4">
             <div className="mb-2 text-center text-sm text-slate-300 font-ui">
-              Τελικός — Τοποθέτησε το ποντάρισμά σου (0–3)
+              Τελικός — Τοποθέτησε το ποντάρισμά σου (0–3) και πάτησε Next.
             </div>
-            <div className="grid grid-cols-1 gap-4 max-w-2xl mx-auto">
+            <div className="max-w-2xl mx-auto flex justify-center">
               <WagerControl
                 label={p1.name}
                 value={wager.p1}
                 onChange={(n) => setWager({ p1: clamp(n, 0, 3) })}
-                grad="linear-gradient(90deg,#BA1ED3,#F11467)"
               />
             </div>
           </div>
         )}
+
         <div className="mt-6 flex justify-center gap-3">
           <NavButtons />
         </div>
@@ -383,7 +391,7 @@ export default function QuizPrototype() {
           {isX2ActiveFor("p1") && (
             <div
               className="rounded-full px-3 py-1 text-xs font-semibold text-white"
-              style={{ background: "linear-gradient(90deg,#BA1ED3,#F11467)" }}
+              style={{ background: THEME.badgeGradient }}
             >
               {p1.name}: ×2
             </div>
@@ -394,7 +402,7 @@ export default function QuizPrototype() {
           {q.prompt}
         </h3>
 
-        {/* Media (image/audio/video) */}
+        {/* Media */}
         <div className="mt-4">
           <Media media={q.media} />
         </div>
@@ -436,15 +444,16 @@ export default function QuizPrototype() {
             <div className="flex flex-wrap justify-center gap-2">
               <button
                 className="btn text-white"
-                style={{ background: "linear-gradient(90deg,#BA1ED3,#F11467)" }}
-                onClick={() => { awardToP1(1); next(); }}
+                style={{ background: THEME.positiveGrad }}
+                onClick={() => { awardToP1(1); setAnswered((a) => ({ ...a, [index]: "correct" })); next(); }}
                 title="Correct"
               >
                 Correct
               </button>
               <button
-                className="btn btn-neutral"
-                onClick={() => { noAnswer(); next(); }}
+                className="btn text-white"
+                style={{ background: THEME.negativeGrad }}
+                onClick={() => { noAnswer(); setAnswered((a) => ({ ...a, [index]: "wrong" })); next(); }}
                 title="Wrong / No answer — resets streak"
               >
                 Wrong / No answer
@@ -458,7 +467,7 @@ export default function QuizPrototype() {
 
         {/* Final scoring controls on last question */}
         {isFinalIndex && (
-          <div className="card font-ui mt-6">
+          <div className="card font-ui mt-6 text-center">
             <div className="mb-2 text-sm text-slate-300">
               Τελικός — Απονέμονται πόντοι βάσει πονταρίσματος
             </div>
@@ -467,19 +476,20 @@ export default function QuizPrototype() {
             </div>
             <div className="space-y-2">
               <div className="text-sm text-slate-300">{p1.name}</div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap justify-center gap-2">
                 <button
-                  disabled={finalResolved.p1 || wager.p1 === 0}
+                  disabled={finalResolved.p1 /* || wager.p1 === 0 */}
                   onClick={() => { finalizeOutcomeP1("correct"); next(); }}
                   className="btn text-white disabled:opacity-50"
-                  style={{ background: "linear-gradient(90deg,#BA1ED3,#F11467)" }}
+                  style={{ background: THEME.positiveGrad }}
                 >
                   Correct +{wager.p1}
                 </button>
                 <button
-                  disabled={finalResolved.p1 || wager.p1 === 0}
+                  disabled={finalResolved.p1 /* || wager.p1 === 0 */}
                   onClick={() => { finalizeOutcomeP1("wrong"); next(); }}
-                  className="btn btn-neutral disabled:opacity-50"
+                  className="btn text-white disabled:opacity-50"
+                  style={{ background: THEME.negativeGrad }}
                 >
                   Wrong −{wager.p1}
                 </button>
@@ -514,44 +524,39 @@ export default function QuizPrototype() {
           <button onClick={resetGame} className="btn btn-accent">
             Play Again
           </button>
-
         </div>
       </StageCard>
     );
   }
 
-  function X2Control({
-    label,
-    side,
-    available,
-    armed,
-    disabled,
-    onArm,
-    grad,
-    isFinal,
-  }) {
+  // ——— Single-button X2 control ———
+  function X2Control({ label, side, available, armed, onArm, isFinal }) {
+    const status = available
+      ? "Χ2 διαθέσιμο"
+      : armed
+      ? "Χ2 ενεργό"
+      : "Χ2 χρησιμοποιήθηκε";
+
+    const clickable = available && !isFinal && canArmX2(side);
+
     return (
       <div className="card font-ui mx-auto text-center">
-        <div className="mb-2 text-sm text-slate-300">{label}</div>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full min-w-0">
-          <div className="pill text-white shrink-0" style={{ background: grad }}>
-            {available ? "Χ2 διαθέσιμο" : armed ? "Χ2 ενεργό" : "Χ2 χρησιμοποιήθηκε"}
-          </div>
-          <button
-            className="btn btn-neutral disabled:opacity-50 w-full sm:w-auto whitespace-normal break-words text-center leading-snug text-sm"
-            onClick={onArm}
-            disabled={disabled}
-            title={
-              isFinal
-                ? "Δεν επιτρέπεται στον Τελικό"
-                : available
-                ? "Ενεργοποίηση Χ2 για αυτόν τον γύρο"
-                : "Δεν απομένει Χ2"
-            }
-          >
-            Χρησιμοποίησε Χ2
-          </button>
-        </div>
+        <div className="mb-3 text-sm text-slate-300">{label}</div>
+        <button
+          className="rounded-full px-4 py-2 text-white font-extrabold shadow"
+          style={{ background: THEME.badgeGradient }}
+          onClick={() => clickable && onArm()}
+          disabled={!clickable}
+          title={
+            isFinal
+              ? "Δεν επιτρέπεται στον Τελικό"
+              : available
+              ? "Ενεργοποίηση Χ2 για αυτόν τον γύρο"
+              : "Δεν απομένει Χ2"
+          }
+        >
+          {status}
+        </button>
         <div className="mt-2 text-xs text-slate-400">
           Μπορεί να χρησιμοποιηθεί μόνο μία φορά.
         </div>
@@ -559,15 +564,18 @@ export default function QuizPrototype() {
     );
   }
 
-  function WagerControl({ label, value, onChange, grad }) {
+  function WagerControl({ label, value, onChange }) {
     return (
-      <div className="card font-ui">
-        <div className="mb-2 text-sm text-slate-300">{label}</div>
-        <div className="flex items-center gap-2">
+      <div className="card font-ui text-center flex flex-col items-center">
+        <div className="mb-3 text-sm text-slate-300">{label}</div>
+        <div className="flex items-center gap-2 justify-center">
           <button className="btn btn-neutral" onClick={() => onChange(value - 1)}>
             −
           </button>
-          <div className="pill text-white" style={{ background: grad }}>
+          <div
+            className="pill text-white text-xl px-5 py-2"
+            style={{ background: THEME.badgeGradient }}
+          >
             {value}
           </div>
           <button className="btn btn-neutral" onClick={() => onChange(value + 1)}>
@@ -579,13 +587,24 @@ export default function QuizPrototype() {
     );
   }
 
+  // ——— Classic nav with Next disabled on Answer until marked ———
   function NavButtons() {
+    const nextDisabled =
+      stage === STAGES.ANSWER
+        ? (!isFinalIndex ? !answered[index] : !finalResolved.p1)
+        : false;
+
     return (
       <div className="flex items-center justify-center gap-3">
         <button onClick={previous} className="btn btn-neutral">
           ← Previous
         </button>
-        <button onClick={next} className="btn btn-accent">
+        <button
+          onClick={next}
+          className="btn btn-accent disabled:opacity-50"
+          disabled={nextDisabled}
+          title={nextDisabled ? "Mark the answer first" : "Next"}
+        >
           Next →
         </button>
       </div>
@@ -634,7 +653,7 @@ export default function QuizPrototype() {
     return null;
   }
 
-  // ——— Lightweight self-tests (optional) ———
+  // ——— Lightweight self-tests ———
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.location.hash !== "#selftest") return;
@@ -673,10 +692,12 @@ export default function QuizPrototype() {
             onClose={() => setShowHowTo(false)}
           />
         )}
+
         {stage === STAGES.CATEGORY && <CategoryStage />}
         {stage === STAGES.QUESTION && <QuestionStage />}
         {stage === STAGES.ANSWER && <AnswerStage />}
 
+        {/* Score panel (shows on all non-results stages) */}
         {stage !== STAGES.RESULTS && (
           <>
             <div className="mt-2 text-center text-lg font-semibold font-ui">
@@ -722,36 +743,21 @@ function stageLabel(stage) {
 
 // Hoisted to avoid remounting and input focus loss on each keystroke
 function PlayerPanel({ side, player, setPlayer }) {
-  const badgeGrad = "linear-gradient(90deg,#BA1ED3,#F11467)";
   return (
     <div className="card font-ui">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <input
-          className="w-40 rounded-lg bg-slate-900/60 px-2 py-1 text-slate-100 outline-none"
+          className="w-48 rounded-lg bg-slate-900/60 px-3 py-2 text-slate-100 outline-none"
           value={player.name}
           onChange={(e) => setPlayer((s) => ({ ...s, name: e.target.value }))}
           aria-label={`${side} name`}
         />
-        <div className="flex items-center gap-2">
-          <button
-            className="btn btn-neutral px-2 py-1 text-xs"
-            onClick={() => setPlayer((s) => ({ ...s, score: s.score - 1 }))}
-            title="Decrease score by 1"
-            aria-label="Decrease score"
-          >
-            −
-          </button>
-          <div className="pill text-white min-w-[3ch] text-center" style={{ background: badgeGrad }}>
-            {player.score}
-          </div>
-          <button
-            className="btn btn-neutral px-2 py-1 text-xs"
-            onClick={() => setPlayer((s) => ({ ...s, score: s.score + 1 }))}
-            title="Increase score by 1"
-            aria-label="Increase score"
-          >
-            +
-          </button>
+        <div
+          className="text-white font-extrabold rounded-full text-2xl md:text-4xl px-6 py-3"
+          style={{ background: THEME.badgeGradient }}
+          aria-label="Score"
+        >
+          {player.score}
         </div>
       </div>
       <div className="flex items-center justify-between text-sm">

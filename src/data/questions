@@ -76,7 +76,7 @@ export const questions = [
     prompt: "Ποιάς ομάδας είναι το ποιο κάτω logo;",
     type: "open",
     media: { kind: "image", src: "/Images/Photo4.png" },
-    answer: "Sampdoria",
+    answer: "Birmingham City F.C.",
   },
   {
     id: "q8-gossip-hair",
