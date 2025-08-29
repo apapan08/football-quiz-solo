@@ -6,7 +6,7 @@ export const questions = [
     category: "Κυπριακό Πρωτάθλημα",
     points: 1,
     lang: "el",
-    prompt: "Ποιά είναι η Θύρα της Πάφου;",
+    prompt: "Ποια είναι η θύρα της Πάφου;",
     type: "open",
     media: { kind: "image", src: "/Images/Photo1.png", alt: "Photo quiz 1" },
     answer: "Θύρα 5",
@@ -14,7 +14,7 @@ export const questions = [
   {
     id: "q2-audio-interview",
     order: 2,
-    category: "Βιογραφικό παίκτή",
+    category: "Βιογραφικό παίκτη",
     points: 1,
     lang: "el",
     prompt: "Ποιος είναι ο παίκτης με την παρακάτω καριέρα;",
@@ -28,8 +28,7 @@ export const questions = [
     category: "Ιστορία",
     points: 1,
     lang: "el",
-    prompt:
-      "Ποιός είναι ο προπονητής με της περισσότερες κατακτήσεις Eurοpa League",
+    prompt: "Ποιος είναι ο προπονητής με τις περισσότερες κατακτήσεις Europa League;",
     type: "open",
     // text-only → no media field
     answer: "Unai Emery (4)",
@@ -40,7 +39,7 @@ export const questions = [
     category: "Γεωγραφία",
     points: 1,
     lang: "el",
-    prompt: "Σε ποιά χώρα αγωνίζεται η Beveren;",
+    prompt: "Σε ποια χώρα αγωνίζεται η Beveren;",
     type: "open",
     // text-only → no media field
     answer: "Βέλγιο",
@@ -54,7 +53,7 @@ export const questions = [
     prompt: "Ποιο ήταν το τελικό σκορ του αγώνα που θα ακούσεις;",
     type: "open",
     media: { kind: "audio", src: "/Audio/Recording1.mp3" },
-    answer: "Arsenal - Olympiakos 2-3",
+    answer: "Arsenal – Olympiakos 2–3",
   },
   {
     id: "q6-cl-winner-2013",
@@ -62,7 +61,7 @@ export const questions = [
     category: "Στατιστικά παίκτη",
     points: 2,
     lang: "el",
-    prompt: "Ποιος είναι ο παίκτης με τα πιο κάτω στατιστικά",
+    prompt: "Ποιος είναι ο παίκτης με τα παρακάτω στατιστικά;",
     type: "open",
     media: { kind: "image", src: "/Images/Photo3.png" },
     answer: "Marquinhos",
@@ -73,7 +72,7 @@ export const questions = [
     category: "Logo Quiz",
     points: 2,
     lang: "el",
-    prompt: "Ποιάς ομάδας είναι το ποιο κάτω logo;",
+    prompt: "Ποιας ομάδας είναι το παρακάτω λογότυπο;",
     type: "open",
     media: { kind: "image", src: "/Images/Photo4.png" },
     answer: "Birmingham City F.C.",
@@ -84,8 +83,7 @@ export const questions = [
     category: "Iconic Goals",
     points: 1,
     lang: "el",
-    prompt:
-      'Κόντρα σε ποια ομάδα πέτυχε αυτό το υπέροχο γκολ ο Ολιβιέ Ζιρού;',
+    prompt: "Κόντρα σε ποια ομάδα πέτυχε αυτό το υπέροχο γκολ ο Ολιβιέ Ζιρού;",
     type: "open",
     media: { kind: "video", src: "/Videos/Video1.mp4", type: "video/mp4" },
     answer: "Crystal Palace",
@@ -93,7 +91,7 @@ export const questions = [
   {
     id: "q9-world-cup-minutes",
     order: 9,
-    category: "Final Question - Premier League",
+    category: "Τελική ερώτηση - Premier League",
     points: 1,
     isFinal: true,
     lang: "el",

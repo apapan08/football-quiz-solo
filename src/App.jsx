@@ -140,7 +140,7 @@ export default function QuizPrototype() {
 
   // Player
   const [p1, setP1] = usePersistentState(`${STORAGE_KEY}:p1`, {
-    name: "Player",
+    name: "Όνομα Παίκτη",
     score: 0,
     streak: 0,
     maxStreak: 0,
@@ -166,7 +166,6 @@ export default function QuizPrototype() {
 
   // How-to modal
   const [showHowTo, setShowHowTo] = useState(true);
-  const [howToLang, setHowToLang] = useState("el");
 
   // On entering Category: reset finale flags
   useEffect(() => {
@@ -277,16 +276,16 @@ export default function QuizPrototype() {
     ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     ctx.font = `800 64px Inter, Noto Sans, system-ui, sans-serif`;
-    ctx.fillText("Football Quiz — Solo Results", w / 2, 140);
+    ctx.fillText("Ποδοσφαιρικό Κουίζ — Αποτελέσματα Σόλο", w / 2, 140);
     ctx.font = `700 52px Inter, Noto Sans, system-ui, sans-serif`;
     ctx.fillText(`${p1.name}: ${p1.score}`, w / 2, 300);
     ctx.font = `800 76px Inter, Noto Sans, system-ui, sans-serif`;
-    ctx.fillText(`Final score: ${p1.score}`, w / 2, 520);
+    ctx.fillText(`Τελικό σκορ: ${p1.score}`, w / 2, 520);
     ctx.font = `600 42px Inter, Noto Sans, system-ui, sans-serif`;
-    ctx.fillText(`Longest streak — ${p1.maxStreak}`, w / 2, 680);
+    ctx.fillText(`Μεγαλύτερο σερί — ${p1.maxStreak}`, w / 2, 680);
     ctx.font = `500 30px Inter, Noto Sans, system-ui, sans-serif`;
     ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.fillText("onlyfootballfans • solo play", w / 2, h - 80);
+    ctx.fillText("onlyfootballfans • σόλο παιχνίδι", w / 2, h - 80);
     const a = document.createElement("a");
     a.href = c.toDataURL("image/png");
     a.download = "quiz-results.png";
@@ -298,20 +297,19 @@ export default function QuizPrototype() {
     return (
       <div className="px-4 pt-6 pb-2 font-ui">
         <div className="flex items-center justify-center gap-3">
-          <img src="/logo.png" alt="Brand logo" className="h-7 w-auto drop-shadow" />
+          <img src="/logo.png" alt="Λογότυπο" className="h-7 w-auto drop-shadow" />
           <span
             className="rounded-full px-3 py-1 text-sm font-semibold shadow"
             style={{ background: THEME.accent }}
           >
-            Q {index + 1} of {QUESTIONS.length}
+            Ερ. {index + 1} από {QUESTIONS.length}
           </span>
         </div>
         <div className="mt-2 text-center text-xs uppercase tracking-wide text-slate-300">
           {stageLabel(stage)}
         </div>
         <div className="mt-2 flex items-center justify-center gap-2">
-          <button onClick={() => { setHowToLang('en'); setShowHowTo(true); }} className="pill bg-white text-black">🇬🇧 Instructions</button>
-          <button onClick={() => { setHowToLang('el'); setShowHowTo(true); }} className="pill bg-white text-black">🇬🇷 Οδηγίες</button>
+          <button onClick={() => { setShowHowTo(true); }} className="pill bg-white text-black">🇬🇷 Οδηγίες</button>
         </div>
       </div>
     );
@@ -328,7 +326,7 @@ export default function QuizPrototype() {
           <div className="text-rose-400 text-4xl">🏆</div>
           <div className="flex items-center gap-2">
             <div className="pill text-white bg-slate-700/70">
-              Category ×{q.points || 1}
+              Κατηγορία ×{q.points || 1}
             </div>
           </div>
         </div>
@@ -336,7 +334,7 @@ export default function QuizPrototype() {
           {q.category}
         </h2>
         <p className="mt-2 text-center font-ui" style={{ color: THEME.accent }}>
-          x{q.points || 1} Points
+          x{q.points || 1} Πόντοι
         </p>
 
         {/* X2 (single button) — HIDDEN on Final */}
@@ -362,7 +360,7 @@ export default function QuizPrototype() {
         {isFinalIndex && (
           <div className="mt-5 rounded-2xl bg-slate-900/50 p-4">
             <div className="mb-2 text-center text-sm text-slate-300 font-ui">
-              Τελικός — Τοποθέτησε το ποντάρισμά σου (0–3) και πάτησε Next.
+              Τελικός — Τοποθέτησε το ποντάρισμά σου (0–3) και πάτησε Επόμενο.
             </div>
             <div className="max-w-2xl mx-auto flex justify-center">
               <WagerControl
@@ -386,7 +384,7 @@ export default function QuizPrototype() {
       <StageCard>
         <div className="flex items-center gap-2">
           <div className="rounded-full bg-slate-700/70 px-3 py-1 text-xs font-semibold">
-            Category ×{q.points || 1}
+            Κατηγορία ×{q.points || 1}
           </div>
           {isX2ActiveFor("p1") && (
             <div
@@ -412,7 +410,7 @@ export default function QuizPrototype() {
             onClick={() => setStage(STAGES.ANSWER)}
             className="btn btn-accent"
           >
-            Reveal Answer
+            Εμφάνιση απάντησης
           </button>
         </div>
       </StageCard>
@@ -446,21 +444,18 @@ export default function QuizPrototype() {
                 className="btn text-white"
                 style={{ background: THEME.positiveGrad }}
                 onClick={() => { awardToP1(1); setAnswered((a) => ({ ...a, [index]: "correct" })); next(); }}
-                title="Correct"
+                title="Σωστό"
               >
-                Correct
+                Σωστό
               </button>
               <button
                 className="btn text-white"
                 style={{ background: THEME.negativeGrad }}
                 onClick={() => { noAnswer(); setAnswered((a) => ({ ...a, [index]: "wrong" })); next(); }}
-                title="Wrong / No answer — resets streak"
+                title="Λάθος / Καμία απάντηση — μηδενίζει το σερί"
               >
-                Wrong / No answer
+                Λάθος / Καμία απάντηση
               </button>
-            </div>
-            <div className="text-xs text-slate-400">
-              Awards category points (x{q.points || 1}). X2 doubles only the base category points; streak +1 starts from the 3rd consecutive correct.
             </div>
           </div>
         )}
@@ -483,7 +478,7 @@ export default function QuizPrototype() {
                   className="btn text-white disabled:opacity-50"
                   style={{ background: THEME.positiveGrad }}
                 >
-                  Correct +{wager.p1}
+                  Σωστό +{wager.p1}
                 </button>
                 <button
                   disabled={finalResolved.p1 /* || wager.p1 === 0 */}
@@ -491,10 +486,10 @@ export default function QuizPrototype() {
                   className="btn text-white disabled:opacity-50"
                   style={{ background: THEME.negativeGrad }}
                 >
-                  Wrong −{wager.p1}
+                  Λάθος −{wager.p1}
                 </button>
                 {finalResolved.p1 && (
-                  <span className="text-xs text-emerald-300">Resolved ✔</span>
+                  <span className="text-xs text-emerald-300">Ολοκληρώθηκε ✔</span>
                 )}
               </div>
             </div>
@@ -512,17 +507,17 @@ export default function QuizPrototype() {
     return (
       <StageCard>
         <div className="text-center">
-          <div className="font-display text-3xl font-extrabold">Final score</div>
+          <div className="font-display text-3xl font-extrabold">Τελικό σκορ</div>
           <div className="mt-2 font-ui text-slate-300">
             {p1.name}: {p1.score}
           </div>
           <div className="mt-2 font-ui text-sm text-slate-400">
-            Longest streak: {p1.maxStreak}
+            Μεγαλύτερο σερί: {p1.maxStreak}
           </div>
         </div>
         <div className="mt-6 flex flex-wrap justify-center gap-3 font-ui">
           <button onClick={resetGame} className="btn btn-accent">
-            Play Again
+            Παίξε ξανά
           </button>
         </div>
       </StageCard>
@@ -597,15 +592,15 @@ export default function QuizPrototype() {
     return (
       <div className="flex items-center justify-center gap-3">
         <button onClick={previous} className="btn btn-neutral">
-          ← Previous
+          ← Προηγούμενο
         </button>
         <button
           onClick={next}
           className="btn btn-accent disabled:opacity-50"
           disabled={nextDisabled}
-          title={nextDisabled ? "Mark the answer first" : "Next"}
+          title={nextDisabled ? "Καταχώρισε πρώτα την απάντηση" : "Επόμενο"}
         >
-          Next →
+          Επόμενο →
         </button>
       </div>
     );
@@ -629,7 +624,7 @@ export default function QuizPrototype() {
       return (
         <audio key={media.src} controls preload="metadata" playsInline className="w-full mt-2">
           <source src={media.src} type="audio/mpeg" />
-          Your browser can’t play this audio.
+          Το πρόγραμμα περιήγησής σου δεν μπορεί να αναπαράγει αυτό το ηχητικό.
         </audio>
       );
     }
@@ -645,7 +640,7 @@ export default function QuizPrototype() {
           className="w-full max-h-[70vh] rounded-xl"
         >
           <source src={media.src} type={media.type || "video/mp4"} />
-          Your browser can’t play this video.
+          Το πρόγραμμα περιήγησής σου δεν μπορεί να αναπαράγει αυτό το βίντεο.
         </video>
       );
     }
@@ -688,7 +683,6 @@ export default function QuizPrototype() {
         <Header />
         {showHowTo && (
           <HowToModal
-            initialLang={howToLang}
             onClose={() => setShowHowTo(false)}
           />
         )}
@@ -701,7 +695,7 @@ export default function QuizPrototype() {
         {stage !== STAGES.RESULTS && (
           <>
             <div className="mt-2 text-center text-lg font-semibold font-ui">
-              Score
+              Σκορ
             </div>
             <div className="grid grid-cols-1 gap-4 max-w-3xl mx-auto">
               <PlayerPanel side="p1" player={p1} setPlayer={setP1} />
@@ -712,10 +706,10 @@ export default function QuizPrototype() {
         {stage === STAGES.RESULTS && <ResultsStage />}
 
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs text-slate-300 font-ui">
-          <div>Stage: {stageLabel(stage)}</div>
+          <div>Στάδιο: {stageLabel(stage)}</div>
           <div className="flex items-center gap-3">
             <button className="btn btn-neutral" onClick={resetGame}>
-              Reset Game
+              Επαναφορά παιχνιδιού
             </button>
           </div>
         </div>
@@ -727,15 +721,15 @@ export default function QuizPrototype() {
 function stageLabel(stage) {
   switch (stage) {
     case STAGES.CATEGORY:
-      return "Category Stage";
+      return "Στάδιο Κατηγορίας";
     case STAGES.QUESTION:
-      return "Question Stage";
+      return "Στάδιο Ερώτησης";
     case STAGES.ANSWER:
-      return "Answer Stage";
+      return "Στάδιο Απάντησης";
     case STAGES.FINALE:
-      return "Finale (Wager)";
+      return "Τελικός (Στοίχημα)";
     case STAGES.RESULTS:
-      return "Results";
+      return "Αποτελέσματα";
     default:
       return "";
   }
@@ -750,35 +744,34 @@ function PlayerPanel({ side, player, setPlayer }) {
           className="w-48 rounded-lg bg-slate-900/60 px-3 py-2 text-slate-100 outline-none"
           value={player.name}
           onChange={(e) => setPlayer((s) => ({ ...s, name: e.target.value }))}
-          aria-label={`${side} name`}
+          aria-label="όνομα παίκτη"
+          placeholder="Όνομα Παίκτη"
         />
         <div
           className="text-white font-extrabold rounded-full text-2xl md:text-4xl px-6 py-3"
           style={{ background: THEME.badgeGradient }}
-          aria-label="Score"
+          aria-label="Σκορ"
         >
           {player.score}
         </div>
       </div>
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-2">
-          <span className="text-slate-300">Streak:</span>
+          <span className="text-slate-300">Σερί:</span>
           <span
             className="pill text-amber-200"
             style={{ background: "rgba(245, 158, 11, 0.25)" }}
           >
             {player.streak > 0 ? `🔥 +${player.streak}` : "—"}
           </span>
-          <span className="text-slate-500 text-xs">(max {player.maxStreak})</span>
+          <span className="text-slate-500 text-xs">(μέγ. {player.maxStreak})</span>
         </div>
       </div>
     </div>
   );
 }
 
-function HowToModal({ onClose, initialLang = "en", totalQuestions = 9 }) {
-  const [lang, setLang] = useState(initialLang);
-
+function HowToModal({ onClose, totalQuestions = 9 }) {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -787,10 +780,6 @@ function HowToModal({ onClose, initialLang = "en", totalQuestions = 9 }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  useEffect(() => {
-    setLang(initialLang);
-  }, [initialLang]);
-
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
       <div className="fixed inset-0 bg-black/60" onClick={onClose} />
@@ -798,50 +787,24 @@ function HowToModal({ onClose, initialLang = "en", totalQuestions = 9 }) {
         <div className="relative w-full max-w-[680px] font-ui rounded-2xl shadow-xl ring-1 ring-white/10 bg-[var(--howto-bg)] text-slate-100 flex flex-col overflow-hidden max-h-[clamp(420px,85dvh,760px)]">
           <div className="sticky top-0 z-10 px-6 py-4 bg-[var(--howto-bg)] backdrop-blur-sm rounded-t-2xl flex items-center justify-between border-b border-white/10">
             <h2 className="font-display text-2xl font-extrabold">
-              {lang === "en" ? "How to Play" : "Πώς παίζεται"}
+              Πώς παίζεται
             </h2>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setLang("en")}
-                className={`pill bg-white text-black ${lang === "en" ? "ring-2 ring-[var(--brand-accent)]" : ""}`}
-              >
-                🇬🇧 EN
-              </button>
-              <button
-                onClick={() => setLang("el")}
-                className={`pill bg-white text-black ${lang === "el" ? "ring-2 ring-[var(--brand-accent)]" : ""}`}
-              >
-                🇬🇷 ΕΛ
-              </button>
-              <button onClick={onClose} className="btn btn-neutral">Close ✕</button>
+              <button onClick={onClose} className="btn btn-neutral">Κλείσιμο ✕</button>
             </div>
           </div>
 
-          {lang === "en" ? (
-            <div className="scroll-area px-6 pb-6 pt-2 flex-1 min-h-0 text-slate-100 text-sm md:text-base leading-relaxed">
-              <ul className="mt-2 list-disc pl-5 space-y-2">
-                <li><strong>{totalQuestions} questions.</strong> Each has fixed points (shown on the Category chip).</li>
-                <li><strong>Goal:</strong> collect as many points as you can.</li>
-                <li><strong>Flow:</strong> Category → Question → Answer.</li>
-                <li><strong>×2:</strong> On the Category screen you may arm <strong>×2 once</strong> per game. It doubles the category points of that question only.</li>
-                <li><strong>Streak:</strong> From your <strong>3rd correct in a row</strong>, gain an extra <strong>+1</strong> (not doubled).</li>
-                <li><strong>Final question (wager 0–3):</strong> Right = +wager, Wrong/No answer = −wager. ×2 is not allowed.</li>
-              </ul>
-              <div className="howto-shadow" />
-            </div>
-          ) : (
-            <div className="scroll-area px-6 pb-6 pt-2 flex-1 min-h-0 text-slate-100 text-sm md:text/base leading-relaxed">
-              <ul className="mt-2 list-disc pl-5 space-y-2">
-                <li><strong>{totalQuestions} ερωτήσεις.</strong> Κάθε μία έχει συγκεκριμένους πόντους (ανάλογα με την δυσκόλια).</li>
-                <li><strong>Στόχος:</strong> μάζεψε όσο περισσότερους πόντους μπορείς.</li>
-                <li><strong>Ροή:</strong> Κατηγορία → Ερώτηση → Απάντηση.</li>
-                <li><strong>Χ2:</strong> Όταν εμφανίζεται η κατηγορία μπορείς να ενεργοποιήσεις <strong>μία φορά</strong> ανά παιχνίδι. Διπλασιάζει μόνο τους πόντους αυτής της ερώτησης.</li>
-                <li><strong>Streak:</strong> Από την <strong>3η συνεχόμενη σωστή</strong> και μετά, παίρνεις έξτρα <strong>+1</strong> (δεν διπλασιάζεται). Ξαναξεκινά να μετρά οταν χάσεις μια ερώτηση</li>
-               <li><strong>Τελική ερώτηση (στοίχημα 0–3):</strong> Πριν εμφανιστεί η τελευταία ερώτηση, διάλεξε πόσους πόντους θα ρισκάρεις (0–3). Αν απαντήσεις σωστά, <strong>κερδίζεις</strong> τόσους πόντους· αν απαντήσεις λάθος ή δεν απαντήσεις, <strong>χάνεις</strong> τους ίδιους πόντους. Αν βάλεις 0, ούτε κερδίζεις ούτε χάνεις. <em>Το Χ2 δεν επιτρέπεται και δεν προστίθεται το bonus του streak.</em> <span className="block text-slate-400 mt-1 text-[0.95em]">Παράδειγμα: σκορ 15 και στοίχημα 2 → σωστό = 17, λάθος/καμία απάντηση = 13.</span></li>
-              </ul>
-              <div className="howto-shadow" />
-            </div>
-          )}
+          <div className="scroll-area px-6 pb-6 pt-2 flex-1 min-h-0 text-slate-100 text-sm md:text-base leading-relaxed">
+            <ul className="mt-2 list-disc pl-5 space-y-2">
+              <li><strong>{totalQuestions} ερωτήσεις.</strong> Κάθε μία έχει συγκεκριμένους πόντους (ανάλογα με τη δυσκολία).</li>
+              <li><strong>Στόχος:</strong> μάζεψε όσο περισσότερους πόντους μπορείς.</li>
+              <li><strong>Ροή:</strong> Κατηγορία → Ερώτηση → Απάντηση.</li>
+              <li><strong>Χ2:</strong> Όταν εμφανίζεται η Κατηγορία μπορείς να ενεργοποιήσεις <strong>μία φορά</strong> ανά παιχνίδι. Διπλασιάζει μόνο τους πόντους αυτής της ερώτησης.</li>
+              <li><strong>Σερί:</strong> Από την <strong>3η συνεχόμενη σωστή</strong> και μετά, παίρνεις έξτρα <strong>+1</strong> (δεν διπλασιάζεται). Ξεκινά πάλι από την αρχή όταν χαθεί μια ερώτηση.</li>
+              <li><strong>Τελική ερώτηση (στοίχημα 0–3):</strong> Πριν εμφανιστεί η τελευταία ερώτηση, διάλεξε πόσους πόντους θα ρισκάρεις (0–3). Αν απαντήσεις σωστά, <strong>κερδίζεις</strong> τόσους πόντους· αν απαντήσεις λάθος ή δεν απαντήσεις, <strong>χάνεις</strong> τους ίδιους πόντους. Αν βάλεις 0, ούτε κερδίζεις ούτε χάνεις. <em>Το Χ2 δεν επιτρέπεται και δεν προστίθεται το bonus του σερί.</em> <span className="block text-slate-400 mt-1 text-[0.95em]">Παράδειγμα: σκορ 15 και στοίχημα 2 → σωστό = 17, λάθος/καμία απάντηση = 13.</span></li>
+            </ul>
+            <div className="howto-shadow" />
+          </div>
         </div>
       </div>
     </div>
