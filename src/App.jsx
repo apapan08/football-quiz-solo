@@ -622,12 +622,21 @@ export default function QuizPrototype() {
 
     if (media.kind === "audio") {
       return (
-        <audio key={media.src} controls preload="metadata" playsInline className="w-full mt-2">
+        <audio
+          key={media.src}
+          controls
+          preload="metadata"
+          playsInline
+          className="w-full mt-2"
+          src={media.src}                 // <- important for Mi Browser
+          style={{ minHeight: 44 }}
+        >
           <source src={media.src} type="audio/mpeg" />
           Το πρόγραμμα περιήγησής σου δεν μπορεί να αναπαράγει αυτό το ηχητικό.
         </audio>
       );
     }
+
 
     if (media.kind === "video") {
       return (
