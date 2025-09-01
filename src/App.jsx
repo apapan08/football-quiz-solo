@@ -181,7 +181,7 @@ const finalTopicLabel = useMemo(() => {
 
   // Player
   const [p1, setP1] = usePersistentState(`${STORAGE_KEY}:p1`, {
-    name: "Όνομα Παίκτη",
+    name: "",
     score: 0,
     streak: 0,
     maxStreak: 0,
@@ -1125,26 +1125,70 @@ function stageLabel(stage) {
   }
 }
 
-// Hoisted to avoid remounting and input focus loss on each keystroke
+
 function PlayerPanel({ side, player, setPlayer }) {
+  const name = (player.name ?? "").trim();
+  const needsNudge = name.length === 0;
+
   return (
     <div className="card font-ui">
-      <div className="mb-4 flex items-center justify-between">
-        <input
-          className="w-48 rounded-lg bg-slate-900/60 px-3 py-2 text-slate-100 outline-none"
-          value={player.name}
-          onChange={(e) => setPlayer((s) => ({ ...s, name: e.target.value }))}
-          aria-label="όνομα παίκτη"
-          placeholder="Όνομα Παίκτη"
-        />
+      {/* Non-blocking inline nudge while empty */}
+      {needsNudge && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-indigo-400/30 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-200">
+          <span className="text-base">✍️</span>
+          <span>Γράψε το όνομά σου (προαιρετικό) — θα φαίνεται στο σκορ & στα αποτελέσματα.</span>
+        </div>
+      )}
+
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <label
+            htmlFor={`player-name-${side}`}
+            className="mb-1 block text-sm font-semibold text-slate-200"
+          >
+            Όνομα παίκτη <span className="font-normal text-slate-400"></span>
+          </label>
+
+          <div className={`relative ${needsNudge ? "animate-pulse" : ""}`}>
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">👤</span>
+            <input
+              id={`player-name-${side}`}
+              className={[
+                "w-full rounded-xl bg-slate-900/60 px-3 py-2 pl-9 text-slate-100 outline-none",
+                "ring-1 ring-slate-700 focus:ring-2 focus:ring-indigo-400",
+                needsNudge ? "ring-2 ring-indigo-400" : "",
+              ].join(" ")}
+              value={player.name}
+              onChange={(e) => setPlayer((s) => ({ ...s, name: e.target.value }))}
+              aria-label="όνομα παίκτη"
+              aria-describedby={`player-name-help-${side}`}
+              placeholder="π.χ. Goat"
+              autoComplete="off"
+              autoCorrect="off"
+              enterKeyHint="done"
+              autoFocus={needsNudge}
+              maxLength={18}
+            />
+          </div>
+
+          <p
+            id={`player-name-help-${side}`}
+            className="mt-1 text-xs text-slate-400"
+          >
+            Το όνομα θα εμφανίζεται στο badge του σκορ και στο τελικό ταμπλό. Μπορείς να το αφήσεις κενό.
+          </p>
+        </div>
+
         <div
-          className="text-white font-extrabold rounded-full text-2xl md:text-4xl px-6 py-3"
+          className="shrink-0 rounded-full px-6 py-3 text-2xl font-extrabold text-white md:text-4xl"
           style={{ background: THEME.badgeGradient }}
           aria-label="Σκορ"
+          title={needsNudge ? "Πρόσθεσε όνομα για προσωποποιημένο σκορ" : "Σκορ"}
         >
           {player.score}
         </div>
       </div>
+
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-2">
           <span className="text-slate-300">Σερί:</span>
@@ -1154,12 +1198,13 @@ function PlayerPanel({ side, player, setPlayer }) {
           >
             {player.streak > 0 ? `🔥 +${player.streak}` : "—"}
           </span>
-          <span className="text-slate-500 text-xs">(μέγ. {player.maxStreak})</span>
+          <span className="text-xs text-slate-500">(μέγ. {player.maxStreak})</span>
         </div>
       </div>
     </div>
   );
 }
+
 
 function HowToModal({ onClose, totalQuestions = 9 }) {
   useEffect(() => {
