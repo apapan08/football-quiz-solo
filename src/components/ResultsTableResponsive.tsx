@@ -1,32 +1,17 @@
 import React from "react";
 
-/**
- * ResultsTableResponsive
- * - Mobile: stacked cards (no horizontal scroll)
- * - Desktop/Tablet: table inside a safe horizontal scroller
- *
- * Props:
- *  rows: array of per-question results
- *  title: heading text (e.g., "Αποτελέσματα")
- *  playerName: current player label under the title
- *  maxStreak: largest streak number to show
- *  onReset: handler for "Play again / Επαναφορά παιχνιδιού"
- *  lang: 'el' | 'en'
- */
 export type ResultRow = {
-  i: number;                         // 1-based question index
-  category: string;                  // category label
-  points: number;                    // q.points
-  isFinal?: boolean;                 // last question?
-  correct?: boolean | null;          // true/false; null = draw/no answer
-  x2?: boolean;                      // X2 applied this question
-  // Prefer showing the player's typed answer. (Kept answerSide for future 2P mode)
-  answerText?: string | null;        // player's typed answer
-  answerSide?: "p1" | "p2" | null;   // who got awarded (if you ever need it)
-  delta: number;                     // +/- change from this question
-  total: number;                     // running total after this question
-  // We show streak **bonus points** (e.g., +1 from 3rd correct), not the raw count.
-  streakPoints?: number;             // 1 when bonus applied, else 0/undefined
+  i: number;
+  category: string;
+  points: number;
+  isFinal?: boolean;
+  correct?: boolean | null;
+  x2?: boolean;
+  answerText?: string | null;
+  answerSide?: "p1" | "p2" | null;
+  delta: number;
+  total: number;
+  streakPoints?: number;
 };
 
 type Props = {
@@ -48,7 +33,7 @@ const STR = {
     wrong: "Λάθος",
     final: "Τελικός",
     points: "Πόντοι",
-    streak: "Σερί", // show bonus points
+    streak: "Σερί",
     x2: "×2",
     answerSide: "Απάντηση Παίκτη",
     delta: "+/−",
@@ -86,7 +71,7 @@ export default function ResultsTableResponsive({
   const t = STR[lang];
 
   return (
-    <div className="card">
+    <div className="card overflow-hidden"> {/* clip inner shadows on iOS */}
       {/* Header */}
       <div className="text-center">
         <h2 className="font-display text-3xl font-extrabold">
@@ -107,47 +92,58 @@ export default function ResultsTableResponsive({
       {/* Mobile stacked list */}
       <ul className="sm:hidden mt-4 grid gap-2">
         {rows.map((r) => (
-          <li key={r.i} className="card p-3">
+          <li key={r.i} className="subcard-howto p-3 overflow-hidden">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-xs text-slate-400">#{r.i}</div>
                 <div className="font-semibold truncate">
                   {r.category}{" "}
                   {r.isFinal && (
-                    <span className="ml-1 align-middle pill bg-white/10 text-[11px]">
+                    <span className="ml-1 align-middle pill bg-white/10 text-[10.5px] px-2 py-[2px]">
                       {t.final}
                     </span>
                   )}
                 </div>
               </div>
-              <div className="text-right">
-                <div className="font-bold tabular-nums">{r.total}</div>
+              <div className="text-right shrink-0">
+                <div className="font-bold tabular-nums leading-tight">
+                  {r.total}
+                </div>
                 <div className="text-xs text-slate-400 tabular-nums">
                   {r.delta >= 0 ? `+${r.delta}` : r.delta}
                 </div>
               </div>
             </div>
 
-            <div className="mt-2 text-xs text-slate-300 flex flex-wrap items-center gap-x-3 gap-y-1">
-              {/* Status: always show correct/wrong/draw, even for final */}
+            <div className="mt-2 text-[12px] text-slate-300 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              {/* Status (show for final too) */}
               {r.correct === true ? (
-                <span className="pill bg-emerald-500 text-white">{t.correct}</span>
+                <span className="pill bg-emerald-500 text-white text-[10.5px] px-2 py-[2px]">
+                  {t.correct}
+                </span>
               ) : r.correct === false ? (
-                <span className="pill bg-rose-500 text-white">{t.wrong}</span>
+                <span className="pill bg-rose-500 text-white text-[10.5px] px-2 py-[2px]">
+                  {t.wrong}
+                </span>
               ) : (
-                <span className="pill bg-slate-600/70">{t.draw}</span>
+                <span className="pill bg-slate-600/70 text-[10.5px] px-2 py-[2px]">
+                  {t.draw}
+                </span>
               )}
 
               <span className="whitespace-nowrap">×{r.points}</span>
               <span className="whitespace-nowrap">
                 {t.streak}: {r.streakPoints ? `+${r.streakPoints}` : "—"}
               </span>
+
               {r.x2 && (
-                <span className="pill bg-fuchsia-500 text-white">{t.x2}</span>
+                <span className="pill bg-fuchsia-500 text-white text-[10.5px] px-2 py-[2px]">
+                  {t.x2}
+                </span>
               )}
 
               {/* Player answer (trimmed) */}
-              <span className="ml-auto max-w-[45%] truncate italic text-slate-400">
+              <span className="ml-auto max-w-[48%] truncate italic text-slate-400">
                 {r.answerText && r.answerText.trim().length > 0 ? r.answerText : "—"}
               </span>
             </div>
@@ -184,7 +180,6 @@ export default function ResultsTableResponsive({
                     </span>
                   </td>
 
-                  {/* Status: correct / wrong / draw (show for final too) */}
                   <td className="whitespace-nowrap">
                     {r.correct === true ? (
                       <span className="pill bg-emerald-500 text-white">{t.correct}</span>
@@ -199,14 +194,12 @@ export default function ResultsTableResponsive({
                     {r.isFinal ? "0×–3×" : `×${r.points}`}
                   </td>
 
-                  {/* Show streak bonus points (+1 or —), not streak count */}
                   <td className="whitespace-nowrap tabular-nums">
                     {r.isFinal ? "—" : r.streakPoints ? `+${r.streakPoints}` : "—"}
                   </td>
 
                   <td>{r.x2 ? "×2" : "—"}</td>
 
-                  {/* Player's typed answer */}
                   <td className="max-w-[220px] truncate italic text-slate-300">
                     {r.answerText && r.answerText.trim().length > 0 ? r.answerText : "—"}
                   </td>
