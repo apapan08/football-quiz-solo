@@ -3,6 +3,8 @@ import { questions as DATA_QUESTIONS } from "./data/questions";
 
 /**
  * Football Quiz — SOLO MODE (single player)
+ * - Intro screen listing categories & points
+ * - Text answer on Question stage + "Δεν γνωρίζω"
  * - One-button X2 flow
  * - Classic Previous/Next buttons; Next disabled on Answer until marked
  * - Correct=green gradient, Wrong=red gradient
@@ -39,6 +41,7 @@ const THEME = {
 // ——— Game constants ———
 const STORAGE_KEY = "quiz_prototype_state_v2_solo";
 const STAGES = {
+  INTRO: "intro",
   CATEGORY: "category",
   QUESTION: "question",
   ANSWER: "answer",
@@ -103,6 +106,10 @@ export default function QuizPrototype() {
       .scroll-area::-webkit-scrollbar { width:10px; }
       .scroll-area::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.18); border-radius:999px; }
       .howto-shadow { position: sticky; bottom: 0; height: 24px; background: linear-gradient(to top, var(--howto-bg), transparent); pointer-events: none; }
+
+      /* HowTo-like surfaces for Intro */
+      .surface-howto { background: var(--howto-bg); border:1px solid rgba(255,255,255,0.10); border-radius:1.5rem; padding:1.5rem; box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+      .subcard-howto { background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10); border-radius:1rem; padding:1rem; }
     `;
     document.head.appendChild(styleEl);
     return () => {
@@ -117,16 +124,50 @@ export default function QuizPrototype() {
     []
   );
 
+  // ——— Category summary for Intro ———
+  const CATEGORY_SUMMARY = useMemo(() => {
+    const map = new Map();
+    for (const q of QUESTIONS) {
+      const key = q.category || "—";
+      if (!map.has(key)) map.set(key, { category: key, points: new Set(), count: 0 });
+      const e = map.get(key);
+      e.points.add(q.points || 1);
+      e.count += 1;
+    }
+    return Array.from(map.values()).map((e) => ({
+      category: e.category,
+      count: e.count,
+      points: Array.from(e.points).sort((a, b) => a - b),
+    }));
+  }, [QUESTIONS]);
+
   // ——— Core game state ———
   const [index, setIndex] = usePersistentState(`${STORAGE_KEY}:index`, 0);
   const [stage, setStage] = usePersistentState(
     `${STORAGE_KEY}:stage`,
-    STAGES.CATEGORY
+    STAGES.INTRO
   );
 
   const lastIndex = QUESTIONS.length - 1;
   const isFinalIndex = index === lastIndex;
   const q = QUESTIONS[index] ?? QUESTIONS[0];
+
+  const finalCategoryName = useMemo(
+  () => (QUESTIONS.length ? QUESTIONS[QUESTIONS.length - 1].category : null),
+  [QUESTIONS]
+);
+
+// Categories to show on Intro (exclude the final question's category)
+const INTRO_CATEGORIES = useMemo(() => {
+  return CATEGORY_SUMMARY.filter((c) => c.category !== finalCategoryName);
+}, [CATEGORY_SUMMARY, finalCategoryName]);
+
+// Clean topic label for the final row (remove leading "Τελική ερώτηση —/–/-/: ")
+const finalTopicLabel = useMemo(() => {
+  const raw = finalCategoryName || "";
+  return raw.replace(/^\s*Τελική\s+ερώτηση\s*[—–\-:]\s*/i, "").trim() || raw;
+}, [finalCategoryName]);
+
 
   // Safety: if persisted index is out-of-range
   useEffect(() => {
@@ -164,8 +205,80 @@ export default function QuizPrototype() {
     { p1: false }
   );
 
+  // Player's typed answers (committed on submit / don't know)
+  const [playerAnswers, setPlayerAnswers] = usePersistentState(
+    `${STORAGE_KEY}:playerAnswers`,
+    {} // { [index]: string }
+  );
+
   // How-to modal
   const [showHowTo, setShowHowTo] = useState(true);
+
+  // ——— Results reconstruction ———
+  const RESULT_ROWS = useMemo(() => {
+    if (!QUESTIONS.length) return [];
+    const last = QUESTIONS.length - 1;
+
+    let running = 0;
+    let streak = 0;
+
+    const rows = QUESTIONS.map((qi, i) => {
+      const outcomeKey = answered[i];
+      const isFinal = i === last;
+      const base = qi.points || 1;
+      const x2Applied = !isFinal && x2?.p1?.armedIndex === i;
+      const userAnswer = (playerAnswers && playerAnswers[i]) || "";
+
+      let delta = 0;
+      let bonus = 0;
+      let outcome = "—";
+
+      if (isFinal) {
+        if (outcomeKey === "final-correct") {
+          outcome = "Σωστό";
+          delta = wager?.p1 || 0;
+        } else if (outcomeKey === "final-wrong") {
+          outcome = "Λάθος";
+          delta = -(wager?.p1 || 0);
+        } else {
+          outcome = "—";
+        }
+      } else {
+        if (outcomeKey === "correct") {
+          outcome = "Σωστό";
+          streak = streak + 1;
+          bonus = streak >= 3 ? 1 : 0;
+          delta = base * (x2Applied ? 2 : 1) + bonus;
+        } else if (outcomeKey === "wrong") {
+          outcome = "Λάθος";
+          streak = 0;
+          delta = 0;
+        } else {
+          outcome = "—";
+          streak = 0;
+          delta = 0;
+        }
+      }
+
+      running += delta;
+
+      return {
+        idx: i + 1,
+        category: qi.category || "—",
+        prompt: qi.prompt,
+        base,
+        x2Applied,
+        bonus,
+        outcome,
+        userAnswer,
+        delta,
+        running,
+        isFinal,
+      };
+    });
+
+    return rows;
+  }, [QUESTIONS, answered, x2, wager, playerAnswers]);
 
   // On entering Category: reset finale flags
   useEffect(() => {
@@ -217,7 +330,7 @@ export default function QuizPrototype() {
 
   function finalizeOutcomeP1(outcome) {
     const bet = wager.p1;
-    if (finalResolved.p1 /* || bet <= 0 */) return; // allow 0 wager to proceed
+    if (finalResolved.p1) return; // allow 0 wager to proceed
     if (outcome === "correct") {
       setP1((s) => ({ ...s, score: s.score + bet }));
     } else {
@@ -228,7 +341,10 @@ export default function QuizPrototype() {
   }
 
   function next() {
-    if (stage === STAGES.CATEGORY) setStage(STAGES.QUESTION);
+    if (stage === STAGES.INTRO) {
+      setIndex(0);
+      setStage(STAGES.CATEGORY);
+    } else if (stage === STAGES.CATEGORY) setStage(STAGES.QUESTION);
     else if (stage === STAGES.FINALE) setStage(STAGES.QUESTION);
     else if (stage === STAGES.QUESTION) setStage(STAGES.ANSWER);
     else if (stage === STAGES.ANSWER) {
@@ -243,21 +359,26 @@ export default function QuizPrototype() {
     else if (stage === STAGES.ANSWER) setStage(STAGES.QUESTION);
     else if (stage === STAGES.FINALE) setStage(STAGES.CATEGORY);
     else if (stage === STAGES.RESULTS) setStage(STAGES.ANSWER);
-    else if (stage === STAGES.CATEGORY && index > 0) {
-      setIndex((i) => i - 1);
-      setStage(STAGES.ANSWER);
+    else if (stage === STAGES.CATEGORY) {
+      if (index > 0) {
+        setIndex((i) => i - 1);
+        setStage(STAGES.ANSWER);
+      } else {
+        setStage(STAGES.INTRO); // back to Intro from first Category
+      }
     }
   }
 
   function resetGame() {
     setIndex(0);
-    setStage(STAGES.CATEGORY);
+    setStage(STAGES.INTRO); // show Intro after reset
     setP1({ name: p1.name, score: 0, streak: 0, maxStreak: 0 });
     setWager({ p1: 0 });
     setFinalResolved({ p1: false });
     setLastCorrect(null);
     setX2({ p1: { available: true, armedIndex: null } });
     setAnswered({});
+    setPlayerAnswers({});
   }
 
   async function exportShareCard() {
@@ -294,30 +415,129 @@ export default function QuizPrototype() {
 
   // ——— UI subcomponents ———
   function Header() {
+    const showCounter = stage !== STAGES.INTRO && stage !== STAGES.RESULTS;
     return (
       <div className="px-4 pt-6 pb-2 font-ui">
         <div className="flex items-center justify-center gap-3">
-          <img src="/logo.png" alt="Λογότυπο" className="h-7 w-auto drop-shadow" />
-          <span
-            className="rounded-full px-3 py-1 text-sm font-semibold shadow"
-            style={{ background: THEME.accent }}
-          >
-            Ερ. {index + 1} από {QUESTIONS.length}
-          </span>
+          <img
+            src="/logo.png"
+            alt="Λογότυπο"
+            className="h-7 w-auto"
+            loading="eager"
+            decoding="sync"
+            fetchpriority="high"
+            style={{
+              filter: "drop-shadow(0 1px 1.5px rgba(0,0,0,.4))",
+              transform: "translateZ(0)",
+              WebkitBackfaceVisibility: "hidden",
+              willChange: "transform",
+            }}
+          />
+          {showCounter && (
+            <span
+              className="rounded-full px-3 py-1 text-sm font-semibold shadow"
+              style={{ background: THEME.accent }}
+            >
+              Ερ. {index + 1} από {QUESTIONS.length}
+            </span>
+          )}
         </div>
         <div className="mt-2 text-center text-xs uppercase tracking-wide text-slate-300">
           {stageLabel(stage)}
         </div>
         <div className="mt-2 flex items-center justify-center gap-2">
-          <button onClick={() => { setShowHowTo(true); }} className="pill bg-white text-black">🇬🇷 Οδηγίες</button>
+          <button onClick={() => { setShowHowTo(true); }} className="pill bg-white text-black">
+            🇬🇷 Οδηγίες
+          </button>
         </div>
       </div>
     );
   }
 
-  function StageCard({ children }) {
+  function StageCard({ children, variant = "default" }) {
+    if (variant === "howto") {
+      return (
+        <div className="surface-howto text-slate-100">
+          {children}
+        </div>
+      );
+    }
     return <div className="card">{children}</div>;
   }
+
+// ——— Intro Stage (HowTo-like, text style, points shown correctly) ———
+function IntroStage() {
+  // helper to format the points badge per category
+  const formatPoints = (ptsArr = []) => {
+    const pts = [...ptsArr].sort((a, b) => a - b);
+    if (pts.length <= 1) return `×${pts[0] ?? 1}`;
+    if (pts.length === 2) return `×${pts[0]} / ×${pts[1]}`;
+    return `×${pts[0]}–×${pts[pts.length - 1]}`;
+  };
+
+  return (
+    <StageCard variant="howto">
+      <div className="text-center">
+        <h1 className="font-display text-3xl font-extrabold">
+          Ποδοσφαιρικό Κουίζ — SOLO
+        </h1>
+        <p className="mt-2 text-slate-300 font-ui">
+          Δες τις κατηγορίες και πάτα «Ας παίξουμε» για να ξεκινήσεις.
+        </p>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-slate-800/60 bg-slate-900/40">
+        <ul className="divide-y divide-slate-800/60">
+          {INTRO_CATEGORIES.map((c) => (
+            <li
+              key={c.category}
+              className="px-4 py-3 flex items-center justify-between"
+            >
+              <div className="min-w-0">
+                <div className="font-display text-base font-semibold">
+                  {c.category}
+                </div>
+                {c.count > 1 && (
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    x{c.count} ερωτήσεις
+                  </div>
+                )}
+              </div>
+
+              {/* show category points, not count */}
+              <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset
+                                bg-fuchsia-600/20 text-fuchsia-300 ring-fuchsia-500/30">
+                {formatPoints(c.points)}
+              </span>
+            </li>
+          ))}
+
+          {/* Final row — no 'Τελικός' chip, keeps wager range */}
+          {finalCategoryName && (
+            <li className="px-4 py-3 flex items-center justify-between">
+              <div className="min-w-0">
+                <div className="font-display text-base font-semibold">
+                  Τελική ερώτηση — {finalTopicLabel}
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">στοίχημα 0×–3×</div>
+              </div>
+              <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset
+                                bg-fuchsia-600/20 text-fuchsia-300 ring-fuchsia-500/30">
+                0×–3×
+              </span>
+            </li>
+          )}
+        </ul>
+      </div>
+
+      <div className="mt-6 flex justify-center">
+        <button onClick={next} className="btn btn-accent px-6 py-3 text-base">
+          Ας παίξουμε
+        </button>
+      </div>
+    </StageCard>
+  );
+}
 
   function CategoryStage() {
     return (
@@ -326,7 +546,7 @@ export default function QuizPrototype() {
           <div className="text-rose-400 text-4xl">🏆</div>
           <div className="flex items-center gap-2">
             <div className="pill text-white bg-slate-700/70">
-              Κατηγορία ×{q.points || 1}
+              {isFinalIndex ? "Τελικός 0×–3×" : `Κατηγορία ×${q.points || 1}`}
             </div>
           </div>
         </div>
@@ -334,7 +554,7 @@ export default function QuizPrototype() {
           {q.category}
         </h2>
         <p className="mt-2 text-center font-ui" style={{ color: THEME.accent }}>
-          x{q.points || 1} Πόντοι
+          {isFinalIndex ? "0×–3× Πόντοι" : `x${q.points || 1} Πόντοι`}
         </p>
 
         {/* X2 (single button) — HIDDEN on Final */}
@@ -380,13 +600,26 @@ export default function QuizPrototype() {
   }
 
   function QuestionStage() {
+    // local-only input so typing doesn't thrash global state (prevents focus loss)
+    const [inputValue, setInputValue] = useState(() => playerAnswers[index] ?? "");
+    // when question index changes, hydrate from saved answer (if any)
+    useEffect(() => {
+      setInputValue(playerAnswers[index] ?? "");
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [index]);
+
+    const submitAndReveal = (text) => {
+      setPlayerAnswers((prev) => ({ ...prev, [index]: (text ?? "").trim() }));
+      setStage(STAGES.ANSWER);
+    };
+
     return (
       <StageCard>
         <div className="flex items-center gap-2">
           <div className="rounded-full bg-slate-700/70 px-3 py-1 text-xs font-semibold">
-            Κατηγορία ×{q.points || 1}
+            {isFinalIndex ? "Τελικός 0×–3×" : `Κατηγορία ×${q.points || 1}`}
           </div>
-          {isX2ActiveFor("p1") && (
+          {isX2ActiveFor("p1") && !isFinalIndex && (
             <div
               className="rounded-full px-3 py-1 text-xs font-semibold text-white"
               style={{ background: THEME.badgeGradient }}
@@ -405,25 +638,59 @@ export default function QuizPrototype() {
           <Media media={q.media} />
         </div>
 
-        <div className="mt-6 flex justify-center">
-          <button
-            onClick={() => setStage(STAGES.ANSWER)}
-            className="btn btn-accent"
-          >
-            Εμφάνιση απάντησης
-          </button>
-        </div>
+        {/* Answer input + actions */}
+        <form
+          className="mt-5 flex flex-col items-stretch gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitAndReveal(inputValue);
+          }}
+        >
+          <input
+            className="w-full rounded-xl bg-slate-900/60 px-4 py-3 text-slate-100 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-pink-400"
+            placeholder="Γράψε την απάντησή σου…"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            autoComplete="off"
+            autoCapitalize="sentences"
+            spellCheck={false}
+          />
+
+          <div className="flex flex-wrap gap-3 justify-center">
+            <button type="submit" className="btn btn-accent">
+              Υποβολή
+            </button>
+            <button
+              type="button"
+              className="btn btn-neutral"
+              onClick={() => submitAndReveal("")}
+              title="Μετάβαση στην απάντηση χωρίς να δοθεί λύση"
+            >
+              Δεν γνωρίζω
+            </button>
+          </div>
+        </form>
       </StageCard>
     );
   }
 
   function AnswerStage() {
+    const userAnswer = (playerAnswers && playerAnswers[index]) || "";
     return (
       <StageCard>
         <div className="text-center">
           <div className="font-display text-3xl font-extrabold">
             {q.answer}
           </div>
+
+          {/* Show player's given answer (small, grey) */}
+          <div className="mt-2 font-ui text-sm text-slate-400">
+            Απάντηση Παίκτη:{" "}
+            <span className="italic text-slate-300">
+              {userAnswer ? userAnswer : "—"}
+            </span>
+          </div>
+
           {q.fact && (
             <div className="mt-2 font-ui text-sm text-slate-300">
               ℹ️ {q.fact}
@@ -433,7 +700,7 @@ export default function QuizPrototype() {
 
         {/* X2 status reminder */}
         <div className="mt-3 text-center text-xs text-slate-400 font-ui">
-          {isX2ActiveFor("p1") && <span>({p1.name}: ×2 ενεργό)</span>}
+          {isX2ActiveFor("p1") && !isFinalIndex && <span>({p1.name}: ×2 ενεργό)</span>}
         </div>
 
         {/* Awarding controls (hide on Final) */}
@@ -473,7 +740,7 @@ export default function QuizPrototype() {
               <div className="text-sm text-slate-300">{p1.name}</div>
               <div className="flex flex-wrap justify-center gap-2">
                 <button
-                  disabled={finalResolved.p1 /* || wager.p1 === 0 */}
+                  disabled={finalResolved.p1}
                   onClick={() => { finalizeOutcomeP1("correct"); next(); }}
                   className="btn text-white disabled:opacity-50"
                   style={{ background: THEME.positiveGrad }}
@@ -481,7 +748,7 @@ export default function QuizPrototype() {
                   Σωστό +{wager.p1}
                 </button>
                 <button
-                  disabled={finalResolved.p1 /* || wager.p1 === 0 */}
+                  disabled={finalResolved.p1}
                   onClick={() => { finalizeOutcomeP1("wrong"); next(); }}
                   className="btn text-white disabled:opacity-50"
                   style={{ background: THEME.negativeGrad }}
@@ -507,7 +774,7 @@ export default function QuizPrototype() {
     return (
       <StageCard>
         <div className="text-center">
-          <div className="font-display text-3xl font-extrabold">Τελικό σκορ</div>
+          <div className="font-display text-3xl font-extrabold">Αποτελέσματα</div>
           <div className="mt-2 font-ui text-slate-300">
             {p1.name}: {p1.score}
           </div>
@@ -515,9 +782,121 @@ export default function QuizPrototype() {
             Μεγαλύτερο σερί: {p1.maxStreak}
           </div>
         </div>
+
+        {/* Stylish per-question breakdown */}
+        <div className="mt-6 overflow-x-auto">
+          <table className="min-w-full text-sm font-ui">
+            <thead>
+              <tr className="text-left text-slate-300">
+                <th className="py-2 pr-3">#</th>
+                <th className="py-2 pr-3">Κατηγορία</th>
+                <th className="py-2 pr-3">Σωστό/Λάθος</th>
+                <th className="py-2 pr-3">Πόντοι</th>
+                <th className="py-2 pr-3">Σερί</th>
+                <th className="py-2 pr-3">×2</th>
+                <th className="py-2 pr-3">Απάντηση Παίκτη</th>
+                <th className="py-2 pr-3 text-right">+/−</th>
+                <th className="py-2 pl-3 text-right">Σύνολο</th>
+              </tr>
+            </thead>
+            <tbody>
+              {RESULT_ROWS.map((r) => {
+                const isCorrect = r.outcome === "Σωστό";
+                const isWrong = r.outcome === "Λάθος";
+                return (
+                  <tr key={r.idx} className="border-t border-white/10">
+                    <td className="py-2 pr-3 text-slate-300">{r.idx}</td>
+                    <td className="py-2 pr-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-display font-semibold">{r.category}</span>
+                        {!r.isFinal && (
+                          <span
+                            className="pill text-white"
+                            style={{ background: THEME.badgeGradient }}
+                            title="Βασικοί πόντοι κατηγορίας"
+                          >
+                            ×{r.base}
+                          </span>
+                        )}
+                        {r.isFinal && (
+                          <span className="pill text-white bg-slate-700/70" title="Τελικός">
+                            Τελικός
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="py-2 pr-3">
+                      <span
+                        className="pill text-white"
+                        style={{
+                          background: isCorrect
+                            ? THEME.positiveGrad
+                            : isWrong
+                            ? THEME.negativeGrad
+                            : "rgba(148,163,184,0.25)",
+                        }}
+                      >
+                        {r.outcome}
+                      </span>
+                    </td>
+
+                    <td className="py-2 pr-3 text-slate-300">
+                      {!r.isFinal
+                        ? `×${r.base}${r.x2Applied ? " → ×" + r.base * 2 : ""}`
+                        : "0×–3×"}
+                    </td>
+
+                    <td className="py-2 pr-3 text-slate-300">
+                      {!r.isFinal ? (r.bonus ? "+1" : "—") : "—"}
+                    </td>
+
+                    <td className="py-2 pr-3">
+                      {!r.isFinal && r.x2Applied ? (
+                        <span
+                          className="pill text-white"
+                          style={{ background: THEME.badgeGradient }}
+                        >
+                          ×2
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">—</span>
+                      )}
+                    </td>
+
+                    <td className="py-2 pr-3">
+                      <span className="text-slate-400 italic">
+                        {r.userAnswer ? r.userAnswer : "—"}
+                      </span>
+                    </td>
+
+                    <td className="py-2 pr-3 text-right">
+                      <span
+                        className={
+                          r.delta > 0
+                            ? "text-emerald-300 font-semibold"
+                            : r.delta < 0
+                            ? "text-rose-300 font-semibold"
+                            : "text-slate-400"
+                        }
+                      >
+                        {r.delta > 0 ? `+${r.delta}` : r.delta}
+                      </span>
+                    </td>
+
+                    <td className="py-2 pl-3 text-right text-slate-200 font-semibold">
+                      {r.running}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
         <div className="mt-6 flex flex-wrap justify-center gap-3 font-ui">
           <button onClick={resetGame} className="btn btn-accent">
-            Παίξε ξανά
+            Επαναφορά παιχνιδιού
           </button>
         </div>
       </StageCard>
@@ -623,12 +1002,12 @@ export default function QuizPrototype() {
     if (media.kind === "audio") {
       return (
         <audio
-          key={media.src}
+          /* no key prop to avoid remount while state changes */
           controls
           preload="metadata"
           playsInline
           className="w-full mt-2"
-          src={media.src}                 // <- important for Mi Browser
+          src={media.src}
           style={{ minHeight: 44 }}
         >
           <source src={media.src} type="audio/mpeg" />
@@ -637,11 +1016,10 @@ export default function QuizPrototype() {
       );
     }
 
-
     if (media.kind === "video") {
       return (
         <video
-          key={media.src}
+          /* no key prop to avoid remount while state changes */
           controls
           preload="metadata"
           playsInline
@@ -696,12 +1074,13 @@ export default function QuizPrototype() {
           />
         )}
 
+        {stage === STAGES.INTRO && <IntroStage />}
         {stage === STAGES.CATEGORY && <CategoryStage />}
         {stage === STAGES.QUESTION && <QuestionStage />}
         {stage === STAGES.ANSWER && <AnswerStage />}
 
-        {/* Score panel (shows on all non-results stages) */}
-        {stage !== STAGES.RESULTS && (
+        {/* Score panel (only on gameplay: Category/Question/Answer) */}
+        {stage !== STAGES.RESULTS && stage !== STAGES.INTRO && (
           <>
             <div className="mt-2 text-center text-lg font-semibold font-ui">
               Σκορ
@@ -729,6 +1108,8 @@ export default function QuizPrototype() {
 
 function stageLabel(stage) {
   switch (stage) {
+    case STAGES.INTRO:
+      return "Εισαγωγή";
     case STAGES.CATEGORY:
       return "Στάδιο Κατηγορίας";
     case STAGES.QUESTION:
@@ -807,9 +1188,9 @@ function HowToModal({ onClose, totalQuestions = 9 }) {
             <ul className="mt-2 list-disc pl-5 space-y-2">
               <li><strong>{totalQuestions} ερωτήσεις.</strong> Κάθε μία έχει συγκεκριμένους πόντους (ανάλογα με τη δυσκολία).</li>
               <li><strong>Στόχος:</strong> μάζεψε όσο περισσότερους πόντους μπορείς.</li>
-              <li><strong>Ροή:</strong> Κατηγορία → Ερώτηση → Απάντηση.</li>
-              <li><strong>Χ2:</strong> Όταν εμφανίζεται η Κατηγορία μπορείς να ενεργοποιήσεις <strong>μία φορά</strong> ανά παιχνίδι. Διπλασιάζει μόνο τους πόντους αυτής της ερώτησης.</li>
-              <li><strong>Σερί:</strong> Από την <strong>3η συνεχόμενη σωστή</strong> και μετά, παίρνεις έξτρα <strong>+1</strong> (δεν διπλασιάζεται). Ξεκινά πάλι από την αρχή όταν χαθεί μια ερώτηση.</li>
+              <li><strong>Ροή:</strong> Εισαγωγή → Κατηγορία → Ερώτηση → Απάντηση.</li>
+              <li><strong>Χ2:</strong> Όταν εμφανίζεται η Κατηγορία μπορείς να ενεργοποιήσεις το Χ2. Αυτο μπορεί να γίνει <strong>μία φορά</strong> ανά παιχνίδι. Διπλασιάζει μόνο τους πόντους αυτής της ερώτησης.</li>
+              <li><strong>Σερί:</strong> Από την <strong>3η συνεχόμενη σωστή</strong> και μετά, παίρνεις έξτρα <strong>+1</strong> (δεν διπλασιάζεται). Το σερί ξεκινά πάλι από την αρχή όταν χαθεί μια ερώτηση.</li>
               <li><strong>Τελική ερώτηση (στοίχημα 0–3):</strong> Πριν εμφανιστεί η τελευταία ερώτηση, διάλεξε πόσους πόντους θα ρισκάρεις (0–3). Αν απαντήσεις σωστά, <strong>κερδίζεις</strong> τόσους πόντους· αν απαντήσεις λάθος ή δεν απαντήσεις, <strong>χάνεις</strong> τους ίδιους πόντους. Αν βάλεις 0, ούτε κερδίζεις ούτε χάνεις. <em>Το Χ2 δεν επιτρέπεται και δεν προστίθεται το bonus του σερί.</em> <span className="block text-slate-400 mt-1 text-[0.95em]">Παράδειγμα: σκορ 15 και στοίχημα 2 → σωστό = 17, λάθος/καμία απάντηση = 13.</span></li>
             </ul>
             <div className="howto-shadow" />

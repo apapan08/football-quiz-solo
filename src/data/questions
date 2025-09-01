@@ -52,7 +52,7 @@ export const questions = [
     lang: "el",
     prompt: "Ποιο ήταν το τελικό σκορ του αγώνα που θα ακούσεις;",
     type: "open",
-    media: { kind: "audio", src: "/Audio/Recording1.mp3" },
+    media: { kind: "video", src: "/Audio/Recording1.mp4" },
     answer: "Arsenal – Olympiakos 2–3",
   },
   {
