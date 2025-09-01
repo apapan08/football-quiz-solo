@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { questions as DATA_QUESTIONS } from "./data/questions";
+import ResultsTableResponsive from "./components/ResultsTableResponsive";
 
 /**
  * Football Quiz — SOLO MODE (single player)
@@ -110,6 +111,10 @@ export default function QuizPrototype() {
       /* HowTo-like surfaces for Intro */
       .surface-howto { background: var(--howto-bg); border:1px solid rgba(255,255,255,0.10); border-radius:1.5rem; padding:1.5rem; box-shadow: 0 10px 24px rgba(0,0,0,.35); }
       .subcard-howto { background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10); border-radius:1rem; padding:1rem; }
+
+      /* Results horizontal scroll (iOS momentum + nicer thumb) */
+      .results-scroll::-webkit-scrollbar { height: 10px; }
+      .results-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 999px; }
     `;
     document.head.appendChild(styleEl);
     return () => {
@@ -153,21 +158,20 @@ export default function QuizPrototype() {
   const q = QUESTIONS[index] ?? QUESTIONS[0];
 
   const finalCategoryName = useMemo(
-  () => (QUESTIONS.length ? QUESTIONS[QUESTIONS.length - 1].category : null),
-  [QUESTIONS]
-);
+    () => (QUESTIONS.length ? QUESTIONS[QUESTIONS.length - 1].category : null),
+    [QUESTIONS]
+  );
 
-// Categories to show on Intro (exclude the final question's category)
-const INTRO_CATEGORIES = useMemo(() => {
-  return CATEGORY_SUMMARY.filter((c) => c.category !== finalCategoryName);
-}, [CATEGORY_SUMMARY, finalCategoryName]);
+  // Categories to show on Intro (exclude the final question's category)
+  const INTRO_CATEGORIES = useMemo(() => {
+    return CATEGORY_SUMMARY.filter((c) => c.category !== finalCategoryName);
+  }, [CATEGORY_SUMMARY, finalCategoryName]);
 
-// Clean topic label for the final row (remove leading "Τελική ερώτηση —/–/-/: ")
-const finalTopicLabel = useMemo(() => {
-  const raw = finalCategoryName || "";
-  return raw.replace(/^\s*Τελική\s+ερώτηση\s*[—–\-:]\s*/i, "").trim() || raw;
-}, [finalCategoryName]);
-
+  // Clean topic label for the final row (remove leading "Τελική ερώτηση —/–/-/: ")
+  const finalTopicLabel = useMemo(() => {
+    const raw = finalCategoryName || "";
+    return raw.replace(/^\s*Τελική\s+ερώτηση\s*[—–\-:]\s*/i, "").trim() || raw;
+  }, [finalCategoryName]);
 
   // Safety: if persisted index is out-of-range
   useEffect(() => {
@@ -465,79 +469,78 @@ const finalTopicLabel = useMemo(() => {
     return <div className="card">{children}</div>;
   }
 
-// ——— Intro Stage (HowTo-like, text style, points shown correctly) ———
-function IntroStage() {
-  // helper to format the points badge per category
-  const formatPoints = (ptsArr = []) => {
-    const pts = [...ptsArr].sort((a, b) => a - b);
-    if (pts.length <= 1) return `×${pts[0] ?? 1}`;
-    if (pts.length === 2) return `×${pts[0]} / ×${pts[1]}`;
-    return `×${pts[0]}–×${pts[pts.length - 1]}`;
-  };
+  // ——— Intro Stage (HowTo-like, text style, points shown correctly) ———
+  function IntroStage() {
+    const formatPoints = (ptsArr = []) => {
+      const pts = [...ptsArr].sort((a, b) => a - b);
+      if (pts.length <= 1) return `×${pts[0] ?? 1}`;
+      if (pts.length === 2) return `×${pts[0]} / ×${pts[1]}`;
+      return `×${pts[0]}–×${pts[pts.length - 1]}`;
+    };
 
-  return (
-    <StageCard variant="howto">
-      <div className="text-center">
-        <h1 className="font-display text-3xl font-extrabold">
-          Ποδοσφαιρικό Κουίζ — SOLO
-        </h1>
-        <p className="mt-2 text-slate-300 font-ui">
-          Δες τις κατηγορίες και πάτα «Ας παίξουμε» για να ξεκινήσεις.
-        </p>
-      </div>
+    return (
+      <StageCard variant="howto">
+        <div className="text-center">
+          <h1 className="font-display text-3xl font-extrabold">
+            Ποδοσφαιρικό Κουίζ — SOLO
+          </h1>
+          <p className="mt-2 text-slate-300 font-ui">
+            Δες τις κατηγορίες και πάτα «Ας παίξουμε» για να ξεκινήσεις.
+          </p>
+        </div>
 
-      <div className="mt-6 rounded-2xl border border-slate-800/60 bg-slate-900/40">
-        <ul className="divide-y divide-slate-800/60">
-          {INTRO_CATEGORIES.map((c) => (
-            <li
-              key={c.category}
-              className="px-4 py-3 flex items-center justify-between"
-            >
-              <div className="min-w-0">
-                <div className="font-display text-base font-semibold">
-                  {c.category}
-                </div>
-                {c.count > 1 && (
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    x{c.count} ερωτήσεις
+        <div className="mt-6 rounded-2xl border border-slate-800/60 bg-slate-900/40">
+          <ul className="divide-y divide-slate-800/60">
+            {INTRO_CATEGORIES.map((c) => (
+              <li
+                key={c.category}
+                className="px-4 py-3 flex items-center justify-between"
+              >
+                <div className="min-w-0">
+                  <div className="font-display text-base font-semibold">
+                    {c.category}
                   </div>
-                )}
-              </div>
-
-              {/* show category points, not count */}
-              <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset
-                                bg-fuchsia-600/20 text-fuchsia-300 ring-fuchsia-500/30">
-                {formatPoints(c.points)}
-              </span>
-            </li>
-          ))}
-
-          {/* Final row — no 'Τελικός' chip, keeps wager range */}
-          {finalCategoryName && (
-            <li className="px-4 py-3 flex items-center justify-between">
-              <div className="min-w-0">
-                <div className="font-display text-base font-semibold">
-                  Τελική ερώτηση — {finalTopicLabel}
+                  {c.count > 1 && (
+                    <div className="text-xs text-slate-400 mt-0.5">
+                      x{c.count} ερωτήσεις
+                    </div>
+                  )}
                 </div>
-                <div className="text-xs text-slate-400 mt-0.5">στοίχημα 0×–3×</div>
-              </div>
-              <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset
-                                bg-fuchsia-600/20 text-fuchsia-300 ring-fuchsia-500/30">
-                0×–3×
-              </span>
-            </li>
-          )}
-        </ul>
-      </div>
 
-      <div className="mt-6 flex justify-center">
-        <button onClick={next} className="btn btn-accent px-6 py-3 text-base">
-          Ας παίξουμε
-        </button>
-      </div>
-    </StageCard>
-  );
-}
+                {/* show category points, not count */}
+                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset
+                                  bg-fuchsia-600/20 text-fuchsia-300 ring-fuchsia-500/30">
+                  {formatPoints(c.points)}
+                </span>
+              </li>
+            ))}
+
+            {/* Final row — no 'Τελικός' chip, keeps wager range */}
+            {finalCategoryName && (
+              <li className="px-4 py-3 flex items-center justify-between">
+                <div className="min-w-0">
+                  <div className="font-display text-base font-semibold">
+                    Τελική ερώτηση — {finalTopicLabel}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">στοίχημα 0×–3×</div>
+                </div>
+                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset
+                                  bg-fuchsia-600/20 text-fuchsia-300 ring-fuchsia-500/30">
+                  0×–3×
+                </span>
+              </li>
+            )}
+          </ul>
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <button onClick={next} className="btn btn-accent px-6 py-3 text-base">
+            Ας παίξουμε
+          </button>
+        </div>
+      </StageCard>
+    );
+  }
 
   function CategoryStage() {
     return (
@@ -600,9 +603,7 @@ function IntroStage() {
   }
 
   function QuestionStage() {
-    // local-only input so typing doesn't thrash global state (prevents focus loss)
     const [inputValue, setInputValue] = useState(() => playerAnswers[index] ?? "");
-    // when question index changes, hydrate from saved answer (if any)
     useEffect(() => {
       setInputValue(playerAnswers[index] ?? "");
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -770,138 +771,40 @@ function IntroStage() {
     );
   }
 
-  function ResultsStage() {
-    return (
-      <StageCard>
-        <div className="text-center">
-          <div className="font-display text-3xl font-extrabold">Αποτελέσματα</div>
-          <div className="mt-2 font-ui text-slate-300">
-            {p1.name}: {p1.score}
-          </div>
-          <div className="mt-2 font-ui text-sm text-slate-400">
-            Μεγαλύτερο σερί: {p1.maxStreak}
-          </div>
-        </div>
+function ResultsStage() {
+  // map internal RESULT_ROWS -> ResultsTableResponsive rows
+  const rows = useMemo(
+    () =>
+      RESULT_ROWS.map((r) => ({
+        i: r.idx,
+        category: r.category,
+        points: r.base ?? 0,
+        isFinal: r.isFinal,
+        // Show correct/wrong for all rows (including final)
+        correct: r.outcome === "Σωστό" ? true : r.outcome === "Λάθος" ? false : null,
+        x2: !!r.x2Applied,
+        // Show the player's typed answer
+        answerText: r.userAnswer || "",
+        // Show streak **bonus points** (+1 when applicable) not raw count
+        streakPoints: !r.isFinal && r.bonus ? 1 : 0,
+        delta: r.delta,
+        total: r.running,
+      })),
+    [RESULT_ROWS]
+  );
 
-        {/* Stylish per-question breakdown */}
-        <div className="mt-6 overflow-x-auto">
-          <table className="min-w-full text-sm font-ui">
-            <thead>
-              <tr className="text-left text-slate-300">
-                <th className="py-2 pr-3">#</th>
-                <th className="py-2 pr-3">Κατηγορία</th>
-                <th className="py-2 pr-3">Σωστό/Λάθος</th>
-                <th className="py-2 pr-3">Πόντοι</th>
-                <th className="py-2 pr-3">Σερί</th>
-                <th className="py-2 pr-3">×2</th>
-                <th className="py-2 pr-3">Απάντηση Παίκτη</th>
-                <th className="py-2 pr-3 text-right">+/−</th>
-                <th className="py-2 pl-3 text-right">Σύνολο</th>
-              </tr>
-            </thead>
-            <tbody>
-              {RESULT_ROWS.map((r) => {
-                const isCorrect = r.outcome === "Σωστό";
-                const isWrong = r.outcome === "Λάθος";
-                return (
-                  <tr key={r.idx} className="border-t border-white/10">
-                    <td className="py-2 pr-3 text-slate-300">{r.idx}</td>
-                    <td className="py-2 pr-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-display font-semibold">{r.category}</span>
-                        {!r.isFinal && (
-                          <span
-                            className="pill text-white"
-                            style={{ background: THEME.badgeGradient }}
-                            title="Βασικοί πόντοι κατηγορίας"
-                          >
-                            ×{r.base}
-                          </span>
-                        )}
-                        {r.isFinal && (
-                          <span className="pill text-white bg-slate-700/70" title="Τελικός">
-                            Τελικός
-                          </span>
-                        )}
-                      </div>
-                    </td>
+  return (
+    <ResultsTableResponsive
+      rows={rows}
+      title="Αποτελέσματα"
+      playerName={p1.name}
+      maxStreak={p1.maxStreak}
+      onReset={resetGame}
+      lang="el"
+    />
+  );
+}
 
-                    <td className="py-2 pr-3">
-                      <span
-                        className="pill text-white"
-                        style={{
-                          background: isCorrect
-                            ? THEME.positiveGrad
-                            : isWrong
-                            ? THEME.negativeGrad
-                            : "rgba(148,163,184,0.25)",
-                        }}
-                      >
-                        {r.outcome}
-                      </span>
-                    </td>
-
-                    <td className="py-2 pr-3 text-slate-300">
-                      {!r.isFinal
-                        ? `×${r.base}${r.x2Applied ? " → ×" + r.base * 2 : ""}`
-                        : "0×–3×"}
-                    </td>
-
-                    <td className="py-2 pr-3 text-slate-300">
-                      {!r.isFinal ? (r.bonus ? "+1" : "—") : "—"}
-                    </td>
-
-                    <td className="py-2 pr-3">
-                      {!r.isFinal && r.x2Applied ? (
-                        <span
-                          className="pill text-white"
-                          style={{ background: THEME.badgeGradient }}
-                        >
-                          ×2
-                        </span>
-                      ) : (
-                        <span className="text-slate-500">—</span>
-                      )}
-                    </td>
-
-                    <td className="py-2 pr-3">
-                      <span className="text-slate-400 italic">
-                        {r.userAnswer ? r.userAnswer : "—"}
-                      </span>
-                    </td>
-
-                    <td className="py-2 pr-3 text-right">
-                      <span
-                        className={
-                          r.delta > 0
-                            ? "text-emerald-300 font-semibold"
-                            : r.delta < 0
-                            ? "text-rose-300 font-semibold"
-                            : "text-slate-400"
-                        }
-                      >
-                        {r.delta > 0 ? `+${r.delta}` : r.delta}
-                      </span>
-                    </td>
-
-                    <td className="py-2 pl-3 text-right text-slate-200 font-semibold">
-                      {r.running}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="mt-6 flex flex-wrap justify-center gap-3 font-ui">
-          <button onClick={resetGame} className="btn btn-accent">
-            Επαναφορά παιχνιδιού
-          </button>
-        </div>
-      </StageCard>
-    );
-  }
 
   // ——— Single-button X2 control ———
   function X2Control({ label, side, available, armed, onArm, isFinal }) {
@@ -1125,7 +1028,6 @@ function stageLabel(stage) {
   }
 }
 
-
 function PlayerPanel({ side, player, setPlayer }) {
   const name = (player.name ?? "").trim();
   const needsNudge = name.length === 0;
@@ -1204,7 +1106,6 @@ function PlayerPanel({ side, player, setPlayer }) {
     </div>
   );
 }
-
 
 function HowToModal({ onClose, totalQuestions = 9 }) {
   useEffect(() => {
