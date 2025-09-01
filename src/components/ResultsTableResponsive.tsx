@@ -18,6 +18,8 @@ type Props = {
   rows: ResultRow[];
   title?: string;
   playerName?: string;
+  /** NEW: total score to show under the player name */
+  totalScore?: number;
   maxStreak?: number;
   onReset?: () => void;
   lang?: "el" | "en";
@@ -27,6 +29,7 @@ const STR = {
   el: {
     results: "Αποτελέσματα",
     player: "Παίκτης",
+    score: "Σκορ",
     maxStreak: "Μεγαλύτερο σερί",
     category: "Κατηγορία",
     correct: "Σωστό",
@@ -44,6 +47,7 @@ const STR = {
   en: {
     results: "Results",
     player: "Player",
+    score: "Score",
     maxStreak: "Longest streak",
     category: "Category",
     correct: "Correct",
@@ -64,6 +68,7 @@ export default function ResultsTableResponsive({
   rows,
   title,
   playerName,
+  totalScore,   // ← NEW
   maxStreak,
   onReset,
   lang = "el",
@@ -71,7 +76,7 @@ export default function ResultsTableResponsive({
   const t = STR[lang];
 
   return (
-    <div className="card overflow-hidden"> {/* clip inner shadows on iOS */}
+    <div className="card overflow-hidden">
       {/* Header */}
       <div className="text-center">
         <h2 className="font-display text-3xl font-extrabold">
@@ -80,6 +85,12 @@ export default function ResultsTableResponsive({
         {playerName && (
           <div className="mt-1 text-slate-300">
             {t.player}: <span className="font-semibold">{playerName}</span>
+          </div>
+        )}
+        {/* NEW: Score line between player and max streak */}
+        {typeof totalScore === "number" && (
+          <div className="mt-1 text-slate-200 font-semibold tabular-nums">
+            {t.score}: {totalScore}
           </div>
         )}
         {typeof maxStreak === "number" && (
@@ -116,14 +127,13 @@ export default function ResultsTableResponsive({
             </div>
 
             <div className="mt-2 text-[12px] text-slate-300 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-              {/* Status (show for final too) */}
               {r.correct === true ? (
                 <span className="pill bg-emerald-500 text-white text-[10.5px] px-2 py-[2px]">
                   {t.correct}
                 </span>
               ) : r.correct === false ? (
                 <span className="pill bg-rose-500 text-white text-[10.5px] px-2 py-[2px]">
-                  {t.wrong}
+                  {t.wwrong}
                 </span>
               ) : (
                 <span className="pill bg-slate-600/70 text-[10.5px] px-2 py-[2px]">
@@ -142,7 +152,6 @@ export default function ResultsTableResponsive({
                 </span>
               )}
 
-              {/* Player answer (trimmed) */}
               <span className="ml-auto max-w-[48%] truncate italic text-slate-400">
                 {r.answerText && r.answerText.trim().length > 0 ? r.answerText : "—"}
               </span>
@@ -215,7 +224,6 @@ export default function ResultsTableResponsive({
         </div>
       </div>
 
-      {/* Footer action */}
       {onReset && (
         <div className="mt-6 flex justify-center">
           <button className="btn btn-accent" onClick={onReset}>

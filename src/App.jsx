@@ -482,7 +482,7 @@ export default function QuizPrototype() {
       <StageCard variant="howto">
         <div className="text-center">
           <h1 className="font-display text-3xl font-extrabold">
-            Ποδοσφαιρικό Κουίζ — SOLO
+            Ποδοσφαιρικό Κουίζ
           </h1>
           <p className="mt-2 text-slate-300 font-ui">
             Δες τις κατηγορίες και πάτα «Ας παίξουμε» για να ξεκινήσεις.
@@ -798,6 +798,7 @@ function ResultsStage() {
       rows={rows}
       title="Αποτελέσματα"
       playerName={p1.name}
+      totalScore={p1.score}  
       maxStreak={p1.maxStreak}
       onReset={resetGame}
       lang="el"
