@@ -133,7 +133,7 @@ export default function ResultsTableResponsive({
                 </span>
               ) : r.correct === false ? (
                 <span className="pill bg-rose-500 text-white text-[10.5px] px-2 py-[2px]">
-                  {t.wwrong}
+                  {t.wrong}
                 </span>
               ) : (
                 <span className="pill bg-slate-600/70 text-[10.5px] px-2 py-[2px]">
