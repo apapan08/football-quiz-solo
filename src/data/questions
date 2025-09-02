@@ -96,7 +96,7 @@ export const questions = [
     isFinal: true,
     lang: "el",
     prompt:
-      "Ποια ομάδα έχει τις περισσότερες ισοπαλίες στην Premier League τα τελευταία 5 χρόνια (27/08/2020 – 27/08/2025);",
+      "Ποια ομάδα έχει τις περισσότερες ισοπαλίες στην Premier League τα τελευταία 5 χρόνια (02/09/2020 – 02/09/2025);",
     type: "open",
     answer: "Brighton & Hove Albion (63)",
   },
